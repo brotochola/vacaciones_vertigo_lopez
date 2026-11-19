@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vacaciones de la banda</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1b1f24; --muted: #667085; --line: #e4e7ec;
+    --accent: #4f46e5; --accent-ink: #ffffff; --free: #2fa84f; --free-ink: #ffffff;
+    --sel: #c7d2fe; --sel-ink: #1e1b4b; --cell: #f2f4f7; --danger: #c0362c; --warn-bg: #fff4d6; --warn-ink: #5c4400;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 12px rgba(16,24,40,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #181b21; --ink: #eceef2; --muted: #98a2b3; --line: #2a2f38;
+      --accent: #818cf8; --accent-ink: #11142b; --free: #2a9d4f; --sel: #3730a3; --sel-ink: #e0e7ff;
+      --cell: #222630; --danger: #f0786e; --warn-bg: #3a2f10; --warn-ink: #f6dd9a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px 16px 96px; }
+  h1 { font-size: 1.5rem; margin: 8px 0 2px; }
+  h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  h3 { font-size: .95rem; margin: 0 0 6px; text-transform: capitalize; }
+  .sub { margin: 0 0 14px; color: var(--muted); }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+
+  .tabs { display: flex; gap: 4px; background: var(--line); padding: 4px; border-radius: 12px; margin-bottom: 14px; }
+  .tab { flex: 1; border: 0; background: transparent; padding: 10px 8px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+  .tab[aria-selected="true"] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; font-size: .92rem; }
+  .banner.error { background: #fde4e1; color: #7a1a12; }
+  @media (prefers-color-scheme: dark) { .banner.error { background: #4a1d19; color: #fbc9c4; } }
+
+  label.lbl { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type="text"] {
+    width: 100%; font: inherit; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  input[type="text"]:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .note { margin: 8px 0 0; font-size: .9rem; color: var(--muted); }
+  .hint { margin: 0 0 10px; color: var(--muted); font-size: .92rem; }
+  .muted { color: var(--muted); }
+
+  .primary { width: 100%; border: 0; border-radius: 12px; padding: 14px; font-weight: 700; background: var(--accent); color: var(--accent-ink); font-size: 1.05rem; }
+  .primary:disabled { opacity: .6; cursor: default; }
+  .link { border: 0; background: none; padding: 4px 2px; color: var(--accent); text-decoration: underline; }
+  .link.danger { color: var(--danger); }
+  .actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
+  /* períodos */
+  .periodos { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .periodos li { display: flex; align-items: center; gap: 8px; background: var(--cell); border-radius: 10px; padding: 8px 10px; }
+  .periodos li.vacio { color: var(--muted); background: transparent; padding-left: 0; }
+  .periodos li span { flex: 1; font-weight: 600; }
+  .periodos li small { color: var(--muted); }
+  .periodos .x { border: 0; background: none; font-size: 1.1rem; color: var(--danger); padding: 2px 8px; border-radius: 8px; }
+
+  .pendiente {
+    position: sticky; top: 8px; z-index: 5; display: flex; gap: 10px; align-items: center; justify-content: space-between;
+    background: var(--accent); color: var(--accent-ink); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; box-shadow: var(--shadow);
+  }
+  .pendiente .link { color: inherit; font-weight: 700; white-space: nowrap; }
+
+  /* calendario */
+  .cal { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px 18px; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .dow { text-align: center; font-size: .72rem; color: var(--muted); padding-bottom: 2px; }
+  .day {
+    border: 0; border-radius: 8px; background: var(--cell); color: var(--ink); aspect-ratio: 1 / 1; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; font-size: .92rem;
+  }
+  .day b { font-weight: 600; line-height: 1; }
+  .day.past { opacity: .35; cursor: default; }
+  .day.hoy { box-shadow: inset 0 0 0 2px var(--ink); }
+  .day.sel { background: var(--accent); color: var(--accent-ink); }
+  .day.prev { background: var(--sel); color: var(--sel-ink); }
+  .day.start { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 3px var(--sel); }
+  .day.libre { background: var(--free); color: var(--free-ink); }
+  .day.pick { box-shadow: 0 0 0 3px var(--ink); position: relative; z-index: 1; }
+  .dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 90%; min-height: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; display: block; }
+
+  /* ver */
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 12px 7px 10px; cursor: pointer; user-select: none; }
+  .chip span { min-width: 0; overflow-wrap: anywhere; }
+  .chip input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+  .chip .sw { width: 10px; height: 10px; border-radius: 50%; display: block; flex: none; }
+  .chip small { color: var(--muted); }
+  .chip:has(input:not(:checked)) { opacity: .55; }
+
+  .rangos { display: flex; flex-direction: column; gap: 6px; }
+  .rango { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; border: 0; border-radius: 10px; padding: 10px 12px; background: var(--free); color: var(--free-ink); }
+  .rango strong { font-weight: 700; }
+  .rango small { opacity: .9; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 12px; font-size: .85rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sq { width: 14px; height: 14px; border-radius: 4px; background: var(--free); display: inline-block; }
+  .legend .dt { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+
+  .detalle {
+    position: sticky; bottom: 10px; z-index: 5; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  }
+  .detalle .tag { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; white-space: nowrap; }
+  .detalle .tag i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; max-width: calc(100% - 32px);
+    background: var(--ink); color: var(--bg); padding: 11px 16px; border-radius: 12px; font-weight: 600; box-shadow: var(--shadow);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  #toast.on { opacity: 1; }
+  #toast.error { background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Vacaciones de la banda</h1>
+    <p class="sub">Cargá los días que no vas a estar en Buenos Aires y mirá cuándo estamos todos.</p>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="cargar" aria-selected="true">Cargar mis vacaciones</button>
+      <button class="tab" role="tab" data-tab="ver" aria-selected="false">Ver calendarios</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- ============ CARGAR ============ -->
+  <main id="vista-cargar">
+    <div class="card">
+      <label class="lbl" for="nombre">Tu nombre</label>
+      <input id="nombre" type="text" list="nombres" autocomplete="off" maxlength="40" placeholder="Ej: Juan">
+      <datalist id="nombres"></datalist>
+      <p id="nombre-nota" class="note" hidden></p>
+    </div>
+
+    <div class="card">
+      <h2>Tus períodos de vacaciones</h2>
+      <p class="hint">Marcá los días en que <strong>no</strong> vas a estar en Buenos Aires: tocá el primer día y después el último. Podés cargar todos los períodos que quieras.</p>
+      <ul id="periodos" class="periodos"></ul>
+      <div id="pendiente" class="pendiente" hidden>
+        <span id="pendiente-txt"></span>
+        <button id="cancelar" type="button" class="link">Cancelar</button>
+      </div>
+      <div id="cal-edit" class="cal"></div>
+    </div>
+
+    <div class="actions">
+      <button id="enviar" type="button" class="primary">Enviar</button>
+      <button id="borrar" type="button" class="link danger" hidden>Borrar mi registro</button>
+    </div>
+  </main>
+
+  <!-- ============ VER ============ -->
+  <main id="vista-ver" hidden>
+    <div class="card">
+      <div class="row">
+        <h2>¿De quiénes?</h2>
+        <span>
+          <button id="todos" type="button" class="link">Todos</button> ·
+          <button id="ninguno" type="button" class="link">Ninguno</button> ·
+          <button id="refrescar" type="button" class="link">↻ Actualizar</button>
+        </span>
+      </div>
+      <div id="miembros" class="chips"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="libres-titulo">Días en que estamos en Buenos Aires</h2>
+      <div id="libres" class="rangos"></div>
+    </div>
+
+    <div class="card">
+      <p class="legend">
+        <span><i class="sq"></i> Están todos en BA</span>
+        <span><i class="dt"></i> Fuera de BA (un color por persona)</span>
+      </p>
+      <div id="cal-ver" class="cal"></div>
+    </div>
+
+    <div id="detalle" class="detalle"></div>
+  </main>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+'use strict';
+
+/* ================= CONFIG =================
+   URL de la Realtime Database de Firebase (proyecto "vertigo-lopez").
+   La ves arriba de la pestaña "Datos" en la consola de Firebase; si
+   elegiste otra región que EE.UU., cambiala por la que aparece ahí.
+   Mirá el LEEME.md. (Si dijera TU-PROYECTO, la app funcionaría en
+   modo prueba y guardaría solo en este navegador.) */
+const DB_URL = 'https://vertigo-lopez-default-rtdb.firebaseio.com';
+const MESES = 12; // cuántos meses mostrar desde el actual
+/* ========================================= */
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+
+// ---------- almacenamiento local (nombre recordado + modo prueba) ----------
+const mem = {};
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch { return mem[k] ?? null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { mem[k] = v; } },
+};
+
+// ---------- base de datos ----------
+const DEMO = DB_URL.includes('TU-PROYECTO');
+const BASE = DB_URL.replace(/\/+$/, '');
+const urlDe = (id) => `${BASE}/vacaciones/${encodeURIComponent(id)}.json`;
+async function ok(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r; }
+const db = DEMO ? {
+  async load() { return JSON.parse(ls.get('vacaciones-demo') || 'null'); },
+  async save(id, rec) { const o = JSON.parse(ls.get('vacaciones-demo') || 'null') || {}; o[id] = rec; ls.set('vacaciones-demo', JSON.stringify(o)); },
+  async remove(id) { const o = JSON.parse(ls.get('vacaciones-demo') || 'null') || {}; delete o[id]; ls.set('vacaciones-demo', JSON.stringify(o)); },
+} : {
+  async load() { return (await ok(await fetch(`${BASE}/vacaciones.json`, { cache: 'no-store' }))).json(); },
+  async save(id, rec) { await ok(await fetch(urlDe(id), { method: 'PUT', body: JSON.stringify(rec) })); },
+  async remove(id) { await ok(await fetch(urlDe(id), { method: 'DELETE' })); },
+};
+
+// ---------- fechas (todo en "número de día" UTC, sin líos de zona horaria) ----------
+const DAY_MS = 86400000;
+const dn = (y, m, d) => Math.floor(Date.UTC(y, m, d) / DAY_MS);            // m: 0-11
+const isoToDay = (s) => { const p = s.split('-'); return dn(+p[0], +p[1] - 1, +p[2]); };
+const dayToIso = (n) => new Date(n * DAY_MS).toISOString().slice(0, 10);
+const _now = new Date();
+const Y0 = _now.getFullYear(), M0 = _now.getMonth();
+const HOY = dn(Y0, M0, _now.getDate());
+const WIN_END = dn(Y0, M0 + MESES, 0);                                      // último día del último mes mostrado
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const MESC = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const fmt = (n) => {
+  const t = new Date(n * DAY_MS), y = t.getUTCFullYear();
+  return `${DIAS[t.getUTCDay()]} ${t.getUTCDate()} ${MESC[t.getUTCMonth()]}${y !== Y0 ? ' ' + y : ''}`;
+};
+function mergePeriods(ps) {
+  const s = ps.map((p) => ({ a: p.a, b: p.b })).sort((x, y) => x.a - y.a);
+  const out = [];
+  for (const p of s) {
+    const l = out[out.length - 1];
+    if (l && p.a <= l.b + 1) l.b = Math.max(l.b, p.b); else out.push(p);
+  }
+  return out;
+}
+const enPeriodo = (ps, d) => ps.some((p) => d >= p.a && d <= p.b);
+
+// ---------- nombres ----------
+const limpiar = (s) => s.trim().replace(/\s+/g, ' ');
+const idDe = (n) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
+const COLORES = ['#e4572e', '#2e86de', '#c44ed4', '#f2a900', '#00a6a6', '#7c4dff', '#ff6f91', '#8d6e63', '#6d7a8a'];
+
+// ---------- estado ----------
+let data = {};              // id -> { id, nombre, periodos:[{a,b}], color }
+let lista = [];             // miembros ordenados por nombre
+let cargaOk = false;        // ¿se pudo leer la base al menos una vez?
+let editPeriods = [];       // períodos que estoy editando [{a,b}] (números de día)
+let pendingStart = null;    // primer toque de un período a medio marcar
+let dirty = false;          // ¿toqué el calendario desde que cargué mis datos?
+let cargadoDe = null;       // id del registro cuyos períodos están en el editor
+let excluidos = new Set();  // miembros destildados en "Ver"
+let diaSel = null;          // día tocado en "Ver"
+let sel = [];               // miembros tildados
+let fuera = new Map();      // día -> miembros (tildados) que están fuera de BA
+
+// ---------- calendario (compartido por las dos vistas) ----------
+function calendario(celda) {
+  let h = '';
+  for (let i = 0; i < MESES; i++) {
+    const y = Y0 + Math.floor((M0 + i) / 12), m = (M0 + i) % 12;
+    const first = dn(y, m, 1), last = dn(y, m + 1, 0);
+    const lead = (new Date(first * DAY_MS).getUTCDay() + 6) % 7;      // semana desde el lunes
+    h += `<div class="mes"><h3>${MESL[m]} ${y}</h3><div class="grid">`;
+    for (const l of 'LMMJVSD') h += `<span class="dow">${l}</span>`;
+    for (let k = 0; k < lead; k++) h += '<i></i>';
+    for (let d = first; d <= last; d++) h += celda(d, d - first + 1);
+    h += '</div></div>';
+  }
+  return h;
+}
+
+// ---------- CARGAR ----------
+function celdaEdit(d, num) {
+  const c = ['day'];
+  if (d < HOY) c.push('past');
+  if (d === HOY) c.push('hoy');
+  if (enPeriodo(editPeriods, d)) c.push('sel');
+  if (d === pendingStart) c.push('start');
+  return `<button type="button" class="${c.join(' ')}" data-d="${d}" aria-label="${fmt(d)}"${d < HOY ? ' disabled' : ''}><b>${num}</b></button>`;
+}
+function renderEdit() {
+  $('#cal-edit').innerHTML = calendario(celdaEdit);
+  const ul = $('#periodos');
+  ul.innerHTML = editPeriods.length
+    ? editPeriods.map((p, i) => `<li><span>${p.a === p.b ? fmt(p.a) : `${fmt(p.a)} → ${fmt(p.b)}`}</span><small>${plural(p.b - p.a + 1, 'día', 'días')}</small><button type="button" class="x" data-i="${i}" aria-label="Quitar período">✕</button></li>`).join('')
+    : '<li class="vacio">Todavía no marcaste ningún período. Si no tenés vacaciones, enviá igual.</li>';
+  $('#pendiente').hidden = pendingStart === null;
+  if (pendingStart !== null) $('#pendiente-txt').textContent = `Empieza el ${fmt(pendingStart)}. Tocá el último día (o el mismo si es uno solo).`;
+}
+$('#cal-edit').addEventListener('click', (e) => {
+  const b = e.target.closest('.day'); if (!b || b.disabled) return;
+  const d = +b.dataset.d;
+  if (pendingStart === null) pendingStart = d;
+  else { editPeriods = mergePeriods([...editPeriods, { a: Math.min(pendingStart, d), b: Math.max(pendingStart, d) }]); pendingStart = null; dirty = true; }
+  renderEdit();
+});
+$('#cal-edit').addEventListener('mouseover', (e) => {     // vista previa del rango con el mouse
+  if (pendingStart === null) return;
+  const b = e.target.closest('.day'); if (!b) return;
+  const d = +b.dataset.d, lo = Math.min(d, pendingStart), hi = Math.max(d, pendingStart);
+  for (const x of $('#cal-edit').querySelectorAll('.day')) { const v = +x.dataset.d; x.classList.toggle('prev', v >= lo && v <= hi && v !== pendingStart); }
+});
+$('#cal-edit').addEventListener('mouseleave', () => { for (const x of $('#cal-edit').querySelectorAll('.prev')) x.classList.remove('prev'); });
+$('#periodos').addEventListener('click', (e) => {
+  const b = e.target.closest('.x'); if (!b) return;
+  editPeriods.splice(+b.dataset.i, 1); dirty = true; renderEdit();
+});
+const cancelar = () => { pendingStart = null; renderEdit(); };
+$('#cancelar').addEventListener('click', cancelar);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pendingStart !== null) cancelar(); });
+
+function revisarNombre() {
+  const nombre = limpiar($('#nombre').value), id = idDe(nombre), reg = id && data[id];
+  const nota = $('#nombre-nota');
+  $('#borrar').hidden = !reg;
+  nota.hidden = !reg;
+  if (reg && !dirty) {
+    // Redibuja solo si cambió algo: este método corre al salir del campo de nombre (blur), y si
+    // redibujáramos siempre, el primer toque sobre el calendario se perdería entre mousedown y click.
+    const guardados = reg.periodos.map((p) => ({ a: p.a, b: p.b }));
+    if (JSON.stringify(guardados) !== JSON.stringify(editPeriods)) { editPeriods = guardados; pendingStart = null; renderEdit(); }
+    cargadoDe = id;
+    nota.textContent = 'Ya hay un registro con ese nombre: te cargamos sus períodos para que los edites.';
+  } else if (reg) {
+    nota.textContent = 'Ya hay un registro con ese nombre: al enviar se reemplaza por lo que marcaste ahora.';
+  } else if (cargadoDe && !dirty) {
+    editPeriods = []; pendingStart = null; cargadoDe = null; renderEdit();
+  }
+}
+$('#nombre').addEventListener('change', revisarNombre);
+
+async function enviar() {
+  const nombre = limpiar($('#nombre').value), id = idDe(nombre);
+  if (!id) { aviso('Escribí tu nombre primero.', true); $('#nombre').focus(); return; }
+  if (pendingStart !== null) { aviso('Te quedó un período sin cerrar: tocá el último día o Cancelar.', true); return; }
+  const btn = $('#enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    if (!cargaOk) { await cargarDatos(); if (!cargaOk) throw new Error('sin conexión'); }
+    revisarNombre();                                   // si ya existía y no toqué nada, manda lo que había
+    const rec = { nombre, periodos: editPeriods.map((p) => ({ d: dayToIso(p.a), h: dayToIso(p.b) })), t: Date.now() };
+    await db.save(id, rec);
+    ls.set('vacaciones-nombre', nombre);
+    dirty = false; cargadoDe = id;
+    aviso('¡Listo, quedó guardado!');
+    irA('ver');
+  } catch (err) {
+    aviso('No se pudo guardar. Revisá tu conexión y probá de nuevo.', true);
+  } finally { btn.disabled = false; btn.textContent = 'Enviar'; }
+}
+$('#enviar').addEventListener('click', enviar);
+
+$('#borrar').addEventListener('click', async () => {
+  const id = idDe(limpiar($('#nombre').value)), reg = data[id]; if (!reg) return;
+  if (!confirm(`¿Borrar el registro de "${reg.nombre}"? Desaparece de los calendarios.`)) return;
+  try {
+    await db.remove(id);
+    editPeriods = []; cargadoDe = null; dirty = false; pendingStart = null; $('#nombre').value = '';
+    ls.set('vacaciones-nombre', '');
+    await cargarDatos(); renderEdit(); aviso('Registro borrado.');
+  } catch { aviso('No se pudo borrar.', true); }
+});
+
+// ---------- VER ----------
+function renderChips() {
+  $('#miembros').innerHTML = lista.length
+    ? lista.map((m) => `<label class="chip"><input type="checkbox" data-id="${esc(m.id)}"${excluidos.has(m.id) ? '' : ' checked'}><i class="sw" style="background:${m.color}"></i><span>${esc(m.nombre)}</span>${m.periodos.length ? '' : '<small>(sin vacaciones)</small>'}</label>`).join('')
+    : '<span class="muted">Todavía no cargó nadie. Andá a «Cargar mis vacaciones».</span>';
+}
+$('#miembros').addEventListener('change', (e) => {
+  const id = e.target.dataset.id; if (id === undefined) return;
+  if (e.target.checked) excluidos.delete(id); else excluidos.add(id);
+  renderVerCal();
+});
+$('#todos').addEventListener('click', () => { excluidos.clear(); renderChips(); renderVerCal(); });
+$('#ninguno').addEventListener('click', () => { excluidos = new Set(lista.map((m) => m.id)); renderChips(); renderVerCal(); });
+$('#refrescar').addEventListener('click', async () => { await cargarDatos(); if (cargaOk) aviso('Actualizado.'); });
+
+function celdaVer(d, num) {
+  const c = ['day'];
+  const past = d < HOY, arr = fuera.get(d) || [];
+  if (past) c.push('past');
+  if (d === HOY) c.push('hoy');
+  if (d === diaSel) c.push('pick');
+  if (!past && sel.length && !arr.length) c.push('libre');
+  const dots = arr.map((m) => `<i style="background:${m.color}"></i>`).join('');
+  return `<button type="button" class="${c.join(' ')}" data-d="${d}" aria-label="${fmt(d)}"${past ? ' disabled' : ''}><b>${num}</b><span class="dots">${dots}</span></button>`;
+}
+function renderVerCal() {
+  sel = lista.filter((m) => !excluidos.has(m.id));
+  fuera = new Map();
+  for (const m of sel) for (const p of m.periodos)
+    for (let d = Math.max(p.a, HOY); d <= Math.min(p.b, WIN_END); d++) {
+      let a = fuera.get(d); if (!a) { a = []; fuera.set(d, a); } a.push(m);
+    }
+  // tramos de días seguidos en que no hay nadie (de los tildados) fuera de BA
+  const runs = [];
+  if (sel.length) {
+    let ini = null;
+    for (let d = HOY; d <= WIN_END + 1; d++) {
+      const libre = d <= WIN_END && !fuera.has(d);
+      if (libre && ini === null) ini = d;
+      if (!libre && ini !== null) { runs.push([ini, d - 1]); ini = null; }
+    }
+  }
+  $('#libres-titulo').textContent = sel.length && sel.length < lista.length
+    ? `Días en que están en Buenos Aires los ${sel.length} tildados`
+    : 'Días en que estamos todos en Buenos Aires';
+  $('#libres').innerHTML = !lista.length ? '<span class="muted">Todavía no cargó nadie.</span>'
+    : !sel.length ? '<span class="muted">Tildá al menos una persona.</span>'
+    : !runs.length ? '<span class="muted">No hay ningún día en que estén todos en los próximos meses. Probá destildar a alguien para ver qué cambia.</span>'
+    : runs.map(([a, b]) => `<button type="button" class="rango" data-d="${a}"><strong>${a === b ? fmt(a) : `${fmt(a)} → ${fmt(b)}`}</strong><small>${plural(b - a + 1, 'día', 'días')}</small></button>`).join('');
+  $('#cal-ver').innerHTML = calendario(celdaVer);
+  renderDetalle();
+}
+function renderDetalle() {
+  const el = $('#detalle');
+  if (!lista.length) { el.hidden = true; return; }
+  el.hidden = false;
+  if (diaSel === null || !sel.length) { el.innerHTML = '<span class="muted">Tocá un día para ver quién está afuera.</span>'; return; }
+  const out = fuera.get(diaSel) || [], inBA = sel.filter((m) => !out.includes(m));
+  const tag = (m) => `<span class="tag"><i style="background:${m.color}"></i>${esc(m.nombre)}</span>`;
+  el.innerHTML = `<strong>${fmt(diaSel)}</strong><br>` +
+    (out.length ? `Fuera de BA: ${out.map(tag).join('')}` : 'Están todos en Buenos Aires ✅') +
+    (out.length && inBA.length ? `<br><span class="muted">En BA: ${inBA.map((m) => esc(m.nombre)).join(', ')}</span>` : '');
+}
+$('#cal-ver').addEventListener('click', (e) => {
+  const b = e.target.closest('.day'); if (!b || b.disabled) return;
+  diaSel = +b.dataset.d; renderVerCal();
+});
+$('#libres').addEventListener('click', (e) => {
+  const b = e.target.closest('.rango'); if (!b) return;
+  diaSel = +b.dataset.d; renderVerCal();
+  const c = $(`#cal-ver [data-d="${diaSel}"]`); if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' });
+});
+
+// ---------- carga de datos ----------
+function normalizar(raw) {
+  const out = {};
+  for (const [id, r] of Object.entries(raw || {})) {
+    if (!r || typeof r.nombre !== 'string' || !limpiar(r.nombre)) continue;
+    const ps = Object.values(r.periodos || {})
+      .filter((p) => p && /^\d{4}-\d\d-\d\d$/.test(p.d) && /^\d{4}-\d\d-\d\d$/.test(p.h))
+      .map((p) => { const a = isoToDay(p.d), b = isoToDay(p.h); return { a: Math.min(a, b), b: Math.max(a, b) }; });
+    out[id] = { id, nombre: limpiar(r.nombre).slice(0, 40), periodos: mergePeriods(ps), color: '' };
+  }
+  return out;
+}
+function mostrarBanner(msg, error) {
+  const b = $('#banner'); b.hidden = !msg; b.className = 'banner' + (error ? ' error' : ''); b.textContent = msg || '';
+}
+async function cargarDatos() {
+  try {
+    data = normalizar(await db.load());
+    lista = Object.values(data).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    lista.forEach((m, i) => { m.color = COLORES[i % COLORES.length]; });
+    cargaOk = true;
+    mostrarBanner(DEMO ? 'Modo prueba: todavía no está conectado a Firebase, así que lo que cargues se guarda solo en este navegador. Mirá el LEEME.md para conectarlo.' : '', false);
+  } catch {
+    mostrarBanner('No se pudo conectar con la base de datos. Revisá tu conexión (o la URL en index.html) y tocá "Actualizar".', true);
+    return;
+  }
+  $('#nombres').innerHTML = lista.map((m) => `<option value="${esc(m.nombre)}">`).join('');
+  renderChips(); renderVerCal(); revisarNombre();
+}
+
+// ---------- pestañas y avisos ----------
+function irA(t) {
+  $('#vista-cargar').hidden = t !== 'cargar';
+  $('#vista-ver').hidden = t !== 'ver';
+  for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-selected', String(b.dataset.tab === t));
+  try { history.replaceState(null, '', t === 'ver' ? '#ver' : location.pathname + location.search); } catch {}
+  if (t === 'ver') cargarDatos();
+  window.scrollTo(0, 0);
+}
+for (const b of document.querySelectorAll('.tab')) b.addEventListener('click', () => irA(b.dataset.tab));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('#vista-ver').hidden) cargarDatos(); });
+
+let toastTimer;
+function aviso(msg, error) {
+  const t = $('#toast'); t.textContent = msg; t.className = (error ? 'error ' : '') + 'on';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.classList.remove('on'); }, 3000);
+}
+
+// ---------- arranque ----------
+(async function init() {
+  const guardado = ls.get('vacaciones-nombre');
+  if (guardado) $('#nombre').value = guardado;
+  renderEdit();
+  if (location.hash === '#ver') irA('ver'); else await cargarDatos();
+})();
+</script>
+</body>
+</html>
